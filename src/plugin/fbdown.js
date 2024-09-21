@@ -1,170 +1,94 @@
-import pkg, { prepareWAMessageMedia } from '@whiskeysockets/baileys';
-const { generateWAMessageFromContent, proto } = pkg;
-import getFBInfo from '@xaviabot/fb-downloader';
+const {cmd , commands} = require('../command')
+const fg = require('api-dylux')
+const yts = require('yt-search')
 
-const fbSearchResultsMap = new Map();
-let fbSearchIndex = 1;
 
-const facebookCommand = async (m, Matrix) => {
-  let selectedListId;
-  const selectedButtonId = m?.message?.templateButtonReplyMessage?.selectedId;
-  const interactiveResponseMessage = m?.message?.interactiveResponseMessage;
+cmd({
+    pattern: "song",
+    desc: "download songs",
+    category: "download",
+    filename: __filename
+},
+async(conn, mek, m,{from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply}) => {
+try{
+if(!q) return reply("Please Give Me Your Song Name...⚡")
+const search = await yts(q)
+const data = search.videos[0];
+const url = data.url
 
-  if (interactiveResponseMessage) {
-    const paramsJson = interactiveResponseMessage.nativeFlowResponseMessage?.paramsJson;
-    if (paramsJson) {
-      const params = JSON.parse(paramsJson);
-      selectedListId = params.id;
-    }
-  }
+let desc = `
+𝗕𝗜𝗡𝗨 𝗠𝗗 𝗕𝗢𝗧 𝗦𝗢𝗡𝗚 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗘𝗥...🌟
 
-  const selectedId = selectedListId || selectedButtonId;
+*Title* ► ${data.title}
 
-  const prefixMatch = m.body.match(/^[\\/!#.]/);
-  const prefix = prefixMatch ? prefixMatch[0] : '/';
-  const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
-  const text = m.body.slice(prefix.length + cmd.length).trim();
+*Description* ► ${data.description}
 
-  const validCommands = ['facebook', 'fb', 'fbdl'];
+*Time* ► ${data.duration}
 
-  if (validCommands.includes(cmd)) {
-    if (!text) {
-      return m.reply('Please provide a Facebook video URL.');
-    }
+*Ago* ► ${data.ago}
 
-    try {
-      await m.React("🕘");
+*Views* ► ${data.views}
 
-      const fbData = await getFBInfo(text);
-      console.log("fbData:", fbData);  // Log the data structure
+ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʙɪɴᴜ ᴍᴅ`
+await conn.sendMessage(from,{image:{url: data.thumbnail},caption:desc},{quoted:mek});    
 
-      if (!fbData) {
-        await m.reply('No results found.');
-        await m.React("❌");
-        return;
-      }
+//========== Download Audio ==========
 
-      fbSearchResultsMap.set(fbSearchIndex, fbData);
+let down = await fg.yta(url)
+let downloadUrl = down.dl_url
 
-      const videoQualities = [];
-      if (fbData.sd) {
-        videoQualities.push({ resolution: 'SD', url: fbData.sd });
-      }
-      if (fbData.hd) {
-        videoQualities.push({ resolution: 'HD', url: fbData.hd });
-      }
+//========== Send Audio And Audio Document Message ==========
+await conn.sendMessage(from,{audio: {url:downloadUrl},mimetype:"audio/mpeg"},{quoted:mek})
+await conn.sendMessage(from,{document: {url:downloadUrl},mimetype:"audio/mpeg",fileName:data.title + ".mp3"},{quoted:mek})
+    
+}catch(e){
+console.log(e)
+reply(`${e}`)
+}
+})
 
-      const buttons = videoQualities.map((video, index) => ({
-        "name": "quick_reply",
-        "buttonParamsJson": JSON.stringify({
-          display_text: `📥 Download ${video.resolution}`,
-          id: `media_${index}_${fbSearchIndex}`
-        })
-      }));
+//=========== Video DL ============
 
-      const sections = videoQualities.map((video) => ({
-        title: 'Video Qualities',
-        rows: [{
-          title: `📥 Download ${video.resolution}`,
-          description: `Resolution: ${video.resolution}`,
-          id: `media_${fbSearchIndex}_${video.resolution}`
-        }]
-      }));
+cmd({
+    pattern: "video",
+    desc: "download videos",
+    category: "download",
+    filename: __filename
+},
+async(conn, mek, m,{from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply}) => {
+try{
+if(!q) return reply("Please Give Me Your Video Name...⚡")
+const search = await yts(q)
+const data = search.videos[0];
+const url = data.url
 
-      const msg = generateWAMessageFromContent(m.from, {
-        viewOnceMessage: {
-          message: {
-            messageContextInfo: {
-              deviceListMetadata: {},
-              deviceListMetadataVersion: 2
-            },
-            interactiveMessage: proto.Message.InteractiveMessage.create({
-              body: proto.Message.InteractiveMessage.Body.create({
-                text: `*ETHIX-MD FACEBOOK POST DOWNLOADER*\n\n> *TITLE*: ${fbData.title}`
-              }),
-              footer: proto.Message.InteractiveMessage.Footer.create({
-                text: "© Powered By Ethix-MD"
-              }),
-              header: proto.Message.InteractiveMessage.Header.create({
-                ...(await prepareWAMessageMedia({ image: { url: fbData.thumbnail } }, { upload: Matrix.waUploadToServer })),
-                title: "",
-                gifPlayback: true,
-                subtitle: "",
-                hasMediaAttachment: false 
-              }),
-              nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
-                buttons
-              }),
-              contextInfo: {
-                mentionedJid: [m.sender],
-                forwardingScore: 9999,
-                isForwarded: true,
-              }
-            }),
-          },
-        },
-      }, {});
+let desc = `
+𝗕𝗜𝗡𝗨 𝗠𝗗 𝗕𝗢𝗧 𝗩𝗜𝗗𝗘𝗢 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗘𝗥...🌟
 
-      await Matrix.relayMessage(msg.key.remoteJid, msg.message, {
-        messageId: msg.key.id
-      });
-      await m.React("✅");
+*Title* ► ${data.title}
 
-      fbSearchIndex += 1; 
-    } catch (error) {
-      console.error("Error processing your request:", error);
-      await m.reply('Error processing your request.');
-      await m.React("❌");
-    }
-  } else if (selectedId) { 
-    if (selectedId.startsWith('media_')) {
-      const parts = selectedId.split('_');
-      const qualityIndex = parseInt(parts[1]);
-      const key = parseInt(parts[2]);
-      const selectedMedia = fbSearchResultsMap.get(key);
+*Description* ► ${data.description}
 
-      if (selectedMedia) {
-        try {
-          const videoQualities = [];
-          if (selectedMedia.sd) {
-            videoQualities.push({ resolution: 'SD', url: selectedMedia.sd });
-          }
-          if (selectedMedia.hd) {
-            videoQualities.push({ resolution: 'HD', url: selectedMedia.hd });
-          }
+*Time* ► ${data.duration}
 
-          const videoUrl = videoQualities[qualityIndex].url;
-          let finalMediaBuffer, mimeType, content;
+*Ago* ► ${data.ago}
 
-          finalMediaBuffer = await getStreamBuffer(videoUrl);
-          mimeType = 'video/mp4';
+*Views* ► ${data.views}
 
-          const fileSizeInMB = finalMediaBuffer.length / (1024 * 1024);
+ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʙɪɴᴜ ᴍᴅ`
+await conn.sendMessage(from,{image:{url: data.thumbnail},caption:desc},{quoted:mek});    
 
-          if (fileSizeInMB <= 300) {
-            content = { 
-              video: finalMediaBuffer, 
-              mimetype: 'video/mp4', 
-              caption: '> © Powered by Ethix-MD',
-            };
-            await Matrix.sendMessage(m.from, content, { quoted: m });
-          } else {
-            await m.reply('The video file size exceeds 300MB.');
-          }
-        } catch (error) {
-          console.error("Error processing your request:", error);
-          await m.reply('Error processing your request.');
-          await m.React("❌");
-        }
-      }
-    }
-  }
-};
+//========== Download Video ==========
 
-const getStreamBuffer = async (url) => {
-  const response = await fetch(url);
-  const buffer = await response.arrayBuffer();
-  return Buffer.from(buffer);
-};
+let down = await fg.ytv(url)
+let downloadUrl = down.dl_url
 
-export default facebookCommand;
+//========== Send Video And Video Document Message ==========
+await conn.sendMessage(from,{video: {url:downloadUrl},mimetype:"video/mp4"},{quoted:mek})
+await conn.sendMessage(from,{document: {url:downloadUrl},mimetype:"video/md4",fileName:data.title + ".mp4"},{quoted:mek})
+    
+}catch(e){
+console.log(e)
+reply(`${e}`)
+}
+})
